@@ -44,6 +44,14 @@ tests/fixtures/*.mov
 tests/fixtures/*.avi
 !tests/fixtures/.gitkeep
 
+fixtures/videos/*.mp4
+fixtures/videos/*.mov
+fixtures/videos/*.avi
+fixtures/videos/*.webm
+!fixtures/videos/.gitkeep
+!fixtures/videos/README.md
+
 # Extracted frames
 frames/
+fixtures/frames/
 output/
