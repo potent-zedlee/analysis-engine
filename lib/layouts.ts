@@ -7,6 +7,12 @@
 
 import fs from 'fs/promises'
 import path from 'path'
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Type Definitions
@@ -75,7 +81,9 @@ export async function loadAllLayouts(): Promise<LayoutsDatabase> {
     return layoutsCache
   }
 
-  const layoutsPath = path.join(process.cwd(), 'data', 'layouts.json')
+  // Use import.meta.url to resolve path relative to this module
+  // This works in both local development and Vercel Lambda environment
+  const layoutsPath = path.join(__dirname, '..', 'data', 'layouts.json')
   const content = await fs.readFile(layoutsPath, 'utf-8')
   const layouts: LayoutsDatabase = JSON.parse(content)
 

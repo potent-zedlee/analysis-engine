@@ -8,7 +8,7 @@
  * - hand_actions
  */
 
-import type { Hand, Player, Action } from './types/hand'
+import type { Hand, Player } from './types/hand.js'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -339,7 +339,7 @@ export class TemplarIntegration {
     handId: string,
     playerIdMap: Map<string, string>
   ): SupabaseHandPlayer[] {
-    return hand.players.map((player) => ({
+    return hand.players.map((player: Player) => ({
       hand_id: handId,
       player_id: playerIdMap.get(player.name)!,
       position: player.position,

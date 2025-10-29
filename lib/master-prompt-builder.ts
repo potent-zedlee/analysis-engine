@@ -10,12 +10,18 @@
 
 import { promises as fs } from 'fs'
 import path from 'path'
-import type { LayoutType } from './layouts'
+import { fileURLToPath } from 'url'
+import { dirname } from 'path'
+import type { LayoutType } from './layouts.js'
 import {
   loadLayoutMetadata,
   formatOSDPositionsForPrompt,
   getRecommendedConfidenceThreshold,
-} from './layouts'
+} from './layouts.js'
+
+// Get __dirname equivalent in ESM
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = dirname(__filename)
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Type Definitions
@@ -54,9 +60,11 @@ export class MasterPromptBuilder {
   private templateCache: Map<LayoutType, string> = new Map()
 
   constructor(config: MasterPromptBuilderConfig = {}) {
+    // Use import.meta.url to resolve paths relative to this module
+    // This works in both local development and Vercel Lambda environment
     this.layoutsDataPath =
-      config.layoutsDataPath || path.join(process.cwd(), 'data', 'layouts.json')
-    this.promptsDir = config.promptsDir || path.join(process.cwd(), 'prompts')
+      config.layoutsDataPath || path.join(__dirname, '..', 'data', 'layouts.json')
+    this.promptsDir = config.promptsDir || path.join(__dirname, '..', 'prompts')
   }
 
   /**

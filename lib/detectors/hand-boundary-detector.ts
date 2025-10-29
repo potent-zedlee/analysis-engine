@@ -5,8 +5,8 @@
  * Verifies scene changes to identify actual hand start/end points
  */
 
-import { GeminiClient } from '../gemini-client'
-import type { SceneChange } from './scene-change-detector'
+import { GeminiClient } from '../gemini-client.js'
+import type { SceneChange } from './scene-change-detector.js'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Type Definitions
@@ -49,7 +49,8 @@ interface GeminiHandBoundaryResponse {
 export class HandBoundaryDetector {
   private geminiClient: GeminiClient
   private confidenceThreshold: number
-  private batchSize: number
+  // @ts-expect-error Reserved for future batch processing
+  private _batchSize: number
 
   constructor(config: HandBoundaryDetectorConfig) {
     this.geminiClient = new GeminiClient({
@@ -57,7 +58,7 @@ export class HandBoundaryDetector {
       temperature: 0.1,
     })
     this.confidenceThreshold = config.confidenceThreshold ?? 0.7
-    this.batchSize = config.batchSize ?? 10
+    this._batchSize = config.batchSize ?? 10
   }
 
   /**
@@ -144,7 +145,9 @@ export class HandBoundaryDetector {
   private async verifyHandStart(
     sceneChange: SceneChange
   ): Promise<GeminiHandBoundaryResponse> {
-    const prompt = `
+    // Reserved prompt for future Gemini Vision integration
+    // @ts-expect-error Will be used in production Gemini Vision integration
+    const _prompt = `
 You are analyzing a poker video to detect hand boundaries.
 
 Look at this frame and determine if it shows the START of a NEW POKER HAND.
@@ -166,7 +169,7 @@ Respond in JSON format:
 
     try {
       // For now, return a simulated response
-      // In production, this would call Gemini Vision with the frame image
+      // In production, this would call Gemini Vision with the frame image (_prompt will be used)
       const simulatedResponse: GeminiHandBoundaryResponse = {
         is_new_hand: sceneChange.confidence > 0.7,
         confidence: sceneChange.confidence,
@@ -189,12 +192,12 @@ Respond in JSON format:
    * Faster but less accurate
    *
    * @param sceneChanges - Scene changes
-   * @param estimatedHandDuration - Expected average hand duration (seconds)
+   * @param _estimatedHandDuration - Expected average hand duration (seconds) - reserved for future use
    * @returns Hand boundaries
    */
   detectBoundariesHeuristic(
     sceneChanges: SceneChange[],
-    estimatedHandDuration: number = 120
+    _estimatedHandDuration: number = 120
   ): HandBoundaryResult {
     const startTime = Date.now()
 

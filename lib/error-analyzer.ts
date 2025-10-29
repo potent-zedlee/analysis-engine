@@ -9,15 +9,14 @@ import type {
   Hand,
   Action,
   Card,
-  Player,
-} from './types/hand'
+} from './types/hand.js'
 import type {
   ErrorType,
   HandError,
   ErrorReport,
   Recommendation,
   ErrorSeverity,
-} from './types/error'
+} from './types/error.js'
 import { promises as fs } from 'fs'
 import path from 'path'
 
@@ -131,7 +130,7 @@ export class ErrorAnalyzer {
       hand.blinds.bb_amount +
       hand.blinds.ante * hand.players.length +
       hand.actions.preflop.reduce(
-        (sum, a) => sum + (a.amount || 0),
+        (sum: number, a: Action) => sum + (a.amount || 0),
         0
       )
 
@@ -157,7 +156,7 @@ export class ErrorAnalyzer {
     if (hand.actions.flop && hand.actions.turn) {
       const flopPotAfter =
         hand.actions.flop.pot_size_before +
-        hand.actions.flop.actions.reduce((sum, a) => sum + (a.amount || 0), 0)
+        hand.actions.flop.actions.reduce((sum: number, a: Action) => sum + (a.amount || 0), 0)
       const potDiff = Math.abs(
         hand.actions.turn.pot_size_before - flopPotAfter
       )
@@ -177,7 +176,7 @@ export class ErrorAnalyzer {
     if (hand.actions.turn && hand.actions.river) {
       const turnPotAfter =
         hand.actions.turn.pot_size_before +
-        hand.actions.turn.actions.reduce((sum, a) => sum + (a.amount || 0), 0)
+        hand.actions.turn.actions.reduce((sum: number, a: Action) => sum + (a.amount || 0), 0)
       const potDiff = Math.abs(
         hand.actions.river.pot_size_before - turnPotAfter
       )

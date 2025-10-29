@@ -25,6 +25,35 @@ export interface YouTubeAPIConfig {
   timeout?: number // milliseconds
 }
 
+// Internal API response types
+interface YouTubeErrorResponse {
+  error?: {
+    message?: string
+    code?: number
+  }
+}
+
+interface YouTubeVideoResponse {
+  items?: Array<{
+    snippet?: {
+      title?: string
+      description?: string
+      channelTitle?: string
+      channelId?: string
+      tags?: string[]
+      publishedAt?: string
+      thumbnails?: {
+        high?: {
+          url?: string
+        }
+        default?: {
+          url?: string
+        }
+      }
+    }
+  }>
+}
+
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // YouTube API Client
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -118,7 +147,7 @@ export class YouTubeAPIClient {
 
       // 4. Check API response
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}))
+        const errorData = (await response.json().catch(() => ({}))) as YouTubeErrorResponse
         throw new YouTubeAPIError(
           `YouTube API error: ${response.status} - ${
             errorData.error?.message || response.statusText
@@ -126,7 +155,7 @@ export class YouTubeAPIClient {
         )
       }
 
-      const data = await response.json()
+      const data = (await response.json()) as YouTubeVideoResponse
 
       // 5. Validate response data
       if (!data.items || data.items.length === 0) {
@@ -138,13 +167,13 @@ export class YouTubeAPIClient {
 
       return {
         videoId,
-        title: snippet.title || '',
-        description: snippet.description || '',
-        channelTitle: snippet.channelTitle || '',
-        channelId: snippet.channelId || '',
-        tags: snippet.tags || [],
-        publishedAt: snippet.publishedAt || '',
-        thumbnail: snippet.thumbnails?.high?.url || snippet.thumbnails?.default?.url || '',
+        title: snippet?.title || '',
+        description: snippet?.description || '',
+        channelTitle: snippet?.channelTitle || '',
+        channelId: snippet?.channelId || '',
+        tags: snippet?.tags || [],
+        publishedAt: snippet?.publishedAt || '',
+        thumbnail: snippet?.thumbnails?.high?.url || snippet?.thumbnails?.default?.url || '',
       }
     } catch (error: any) {
       if (error.name === 'AbortError') {
@@ -208,7 +237,7 @@ export class YouTubeAPIClient {
         throw new YouTubeAPIError(`YouTube API error: ${response.status}`)
       }
 
-      const data = await response.json()
+      const data = (await response.json()) as YouTubeVideoResponse
 
       return (data.items || []).map((item: any) => ({
         videoId: item.id,

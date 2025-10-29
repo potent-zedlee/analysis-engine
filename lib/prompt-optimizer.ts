@@ -5,8 +5,8 @@
  * to improve accuracy in subsequent iterations.
  */
 
-import type { Hand } from './types/hand'
-import type { HandError, ErrorType } from './types/error'
+import type { Hand } from './types/hand.js'
+import type { HandError, ErrorType } from './types/error.js'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Types

@@ -1,6 +1,6 @@
 {
   "name": "hand-analysis-engine",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "AI-powered poker hand history extraction engine using Gemini 1.5 Pro with Master Prompt System",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",

@@ -5,8 +5,8 @@
  * Uses keyword matching algorithm based on title, description, channel name, and tags
  */
 
-import { YouTubeAPIClient, VideoMetadata } from '../youtube-api'
-import { LayoutType } from '../layouts'
+import { YouTubeAPIClient, VideoMetadata } from '../youtube-api.js'
+import { LayoutType } from '../layouts.js'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Type Definitions
