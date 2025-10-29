@@ -1,0 +1,197 @@
+{
+  "ocr_confusables": [
+    {
+      "pattern": "/10\\.O8M/g",
+      "correction": "10.08M",
+      "confidence_boost": 0.05,
+      "note": "O (letter) commonly misread as 0 (zero)"
+    },
+    {
+      "pattern": "/P1ayer/g",
+      "correction": "Player",
+      "confidence_boost": 0.03,
+      "note": "1 (number) misread as l (lowercase L)"
+    },
+    {
+      "pattern": "/0\\.5M/g",
+      "correction": "0.5M",
+      "note": "Zero point five million"
+    },
+    {
+      "pattern": "/1\\.5M/g",
+      "correction": "1.5M",
+      "note": "One point five million"
+    },
+    {
+      "pattern": "/♠/g",
+      "correction": "s",
+      "note": "Spade suit symbol to letter"
+    },
+    {
+      "pattern": "/♥/g",
+      "correction": "h",
+      "note": "Heart suit symbol to letter"
+    },
+    {
+      "pattern": "/♦/g",
+      "correction": "d",
+      "note": "Diamond suit symbol to letter"
+    },
+    {
+      "pattern": "/♣/g",
+      "correction": "c",
+      "note": "Club suit symbol to letter"
+    },
+    {
+      "pattern": "/POT:\\s*\\$?(\\d+[,\\d]*)/g",
+      "correction": "POT: $1",
+      "note": "Extract pot value from various formats"
+    },
+    {
+      "pattern": "/STACK:\\s*\\$?(\\d+[,\\d]*)/g",
+      "correction": "STACK: $1",
+      "note": "Extract stack value from various formats"
+    },
+    {
+      "pattern": "/B3T/g",
+      "correction": "BET",
+      "confidence_boost": 0.02,
+      "note": "3 misread as E"
+    },
+    {
+      "pattern": "/RA1SE/g",
+      "correction": "RAISE",
+      "confidence_boost": 0.02,
+      "note": "I misread as 1"
+    },
+    {
+      "pattern": "/F0LD/g",
+      "correction": "FOLD",
+      "confidence_boost": 0.02,
+      "note": "O misread as 0"
+    },
+    {
+      "pattern": "/ALL-1N/g",
+      "correction": "ALL-IN",
+      "confidence_boost": 0.02,
+      "note": "I misread as 1"
+    },
+    {
+      "pattern": "/\\s*K\\s*/g",
+      "correction": "K",
+      "note": "Thousand (K) with whitespace cleanup"
+    },
+    {
+      "pattern": "/\\s*M\\s*/g",
+      "correction": "M",
+      "note": "Million (M) with whitespace cleanup"
+    }
+  ],
+
+  "action_sequences": [
+    {
+      "invalid": ["fold", "bet"],
+      "reason": "Cannot bet after folding",
+      "suggestedFix": "Check if player names are mixed up or if actions are from different streets"
+    },
+    {
+      "invalid": ["fold", "raise"],
+      "reason": "Cannot raise after folding",
+      "suggestedFix": "Verify player identification and action order"
+    },
+    {
+      "invalid": ["all-in", "raise"],
+      "reason": "Cannot raise after going all-in",
+      "suggestedFix": "Verify action order and check for duplicate actions"
+    },
+    {
+      "invalid": ["all-in", "bet"],
+      "reason": "Cannot bet after going all-in",
+      "suggestedFix": "Verify action order"
+    },
+    {
+      "invalid": ["check", "bet"],
+      "reason": "Cannot bet after checking (same player, same street)",
+      "suggestedFix": "Verify player names or check if actions are from different streets"
+    },
+    {
+      "invalid": ["call", "call"],
+      "reason": "Cannot call twice in a row (same player, same street)",
+      "suggestedFix": "Verify action sequence or check for animation duplication"
+    },
+    {
+      "invalid": ["bet", "check"],
+      "reason": "Cannot check after betting (same player, same street)",
+      "suggestedFix": "Verify player names or action order"
+    }
+  ],
+
+  "pot_calculation_errors": [
+    {
+      "symptom": "Pot suddenly doubles between streets",
+      "likely_cause": "All-in animation caused double counting",
+      "fix": "Ignore animated chip movement, only count final pot size after all animations complete"
+    },
+    {
+      "symptom": "Pot is less than sum of blinds",
+      "likely_cause": "OCR failed to read pot size correctly",
+      "fix": "Recalculate pot from scratch: SB + BB + Ante + all bets"
+    },
+    {
+      "symptom": "Pot increase doesn't match bet amount",
+      "likely_cause": "Multiple bets happening simultaneously or OCR timing issue",
+      "fix": "Wait for all actions to complete before reading pot size"
+    },
+    {
+      "symptom": "Pot size negative or impossibly large",
+      "likely_cause": "OCR misread decimal point or currency symbol",
+      "fix": "Validate pot size range and recheck OCR for decimal/currency errors"
+    },
+    {
+      "symptom": "Pot size at showdown doesn't match final bet total",
+      "likely_cause": "Rake deducted or side pot not accounted for",
+      "fix": "Check for rake indication or multiple all-ins creating side pots"
+    }
+  ],
+
+  "common_misreads": {
+    "player_names": [
+      {
+        "common_error": "Phil Ivey → Phil 1vey",
+        "fix": "Apply name database lookup after OCR"
+      },
+      {
+        "common_error": "Tom Dwan → T0m Dwan",
+        "fix": "Zero to O correction in names"
+      }
+    ],
+    "card_ranks": [
+      {
+        "common_error": "10 → 1O",
+        "fix": "Ten should be 10 (one-zero), not 1O (one-oh)"
+      },
+      {
+        "common_error": "A → 4",
+        "fix": "Ace can be misread as 4 in stylized fonts"
+      },
+      {
+        "common_error": "K → X",
+        "fix": "King can be misread as X in some fonts"
+      }
+    ],
+    "stack_sizes": [
+      {
+        "common_error": "1.2M → 1.ZM",
+        "fix": "2 misread as Z"
+      },
+      {
+        "common_error": "500K → S00K",
+        "fix": "5 misread as S"
+      },
+      {
+        "common_error": "1,000 → 1.000",
+        "fix": "Comma misread as period"
+      }
+    ]
+  }
+}
