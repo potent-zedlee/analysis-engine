@@ -11,26 +11,78 @@
   },
   "scripts": {
     "build": "tsc",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run clean && npm run build && npm test",
     "dev": "tsx watch src/index.ts",
-    "test": "vitest",
+    "test": "vitest run",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "typecheck": "tsc --noEmit"
+  },
+  "files": [
+    "dist",
+    "lib",
+    "src",
+    "prompts",
+    "data",
+    "docs/API.md",
+    "docs/EXAMPLES.md",
+    "README.md",
+    "LICENSE"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./templar": {
+      "import": "./dist/templar-integration.js",
+      "types": "./dist/templar-integration.d.ts"
+    }
   },
   "keywords": [
     "poker",
     "hand-history",
     "gemini",
+    "gemini-vision",
     "master-prompt",
     "video-analysis",
-    "ai"
+    "ai",
+    "machine-learning",
+    "hand-extraction",
+    "poker-analysis",
+    "ocr",
+    "templar-archives",
+    "supabase",
+    "typescript"
   ],
-  "author": "Templar Archives",
+  "author": "Templar Archives <zedlee@templararchives.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/potent-zedlee/analysis-engine.git"
+  },
+  "bugs": {
+    "url": "https://github.com/potent-zedlee/analysis-engine/issues"
+  },
+  "homepage": "https://github.com/potent-zedlee/analysis-engine#readme",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org/"
+  },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
     "@supabase/supabase-js": "^2.77.0",
     "@types/fluent-ffmpeg": "^2.1.28",
     "fluent-ffmpeg": "^2.1.3"
+  },
+  "peerDependencies": {
+    "@supabase/supabase-js": "^2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "@supabase/supabase-js": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/node": "^24.9.2",

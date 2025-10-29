@@ -1,0 +1,43 @@
+# Development files
+.env
+.env.local
+.env.example
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Tests
+tests/
+*.test.ts
+vitest.config.ts
+coverage/
+
+# Build artifacts
+node_modules/
+.DS_Store
+
+# Git
+.git/
+.gitignore
+
+# CI/CD
+.github/
+
+# Documentation (except API and EXAMPLES)
+docs/research/
+handlogic_*.md
+TRD.md
+CLAUDE.md
+WORK_LOG.md
+
+# TypeScript source maps
+*.map
+
+# Temporary files
+tmp/
+temp/
+*.tmp
