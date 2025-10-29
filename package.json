@@ -1,0 +1,42 @@
+{
+  "name": "hand-analysis-engine",
+  "version": "1.0.0",
+  "description": "AI-powered poker hand history extraction engine using Claude Vision",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest --coverage"
+  },
+  "keywords": [
+    "poker",
+    "hand-history",
+    "claude-vision",
+    "video-analysis",
+    "ocr",
+    "ai"
+  ],
+  "author": "Templar Archives",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.68.0",
+    "fluent-ffmpeg": "^2.1.3",
+    "sharp": "^0.34.4",
+    "tesseract.js": "^6.0.1"
+  },
+  "devDependencies": {
+    "@types/fluent-ffmpeg": "^2.1.28",
+    "@types/node": "^24.9.2",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.4"
+  }
+}
