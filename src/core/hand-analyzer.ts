@@ -5,6 +5,7 @@
  * 1. Video analysis using Gemini API
  * 2. Hand extraction (all hands at once)
  * 3. Error detection and validation
+ * 4. YouTube video download and processing
  *
  * NOTE: Scene change detection and boundary detection are no longer used.
  * The new implementation analyzes the entire video at once.
@@ -19,10 +20,21 @@ import { PromptOptimizer } from '../../lib/prompt-optimizer.js'
 import type { Hand } from '../../lib/types/hand.js'
 // import type { HandError } from '../../lib/types/error.js'
 // import type { IterationContext } from '../../lib/prompt-optimizer.js'
+import ytdl from '@distube/ytdl-core'
+import { promises as fs } from 'fs'
+import { createWriteStream } from 'fs'
+import path from 'path'
+import os from 'os'
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 // Types
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+export interface HandAnalyzerConfig {
+  apiKey: string
+  promptsDir?: string // Optional: custom prompts directory path
+  layoutsDataPath?: string // Optional: custom layouts.json path
+}
 
 export interface AnalysisOptions {
   videoUrl?: string // YouTube URL
@@ -62,13 +74,116 @@ export class HandAnalyzer {
   // private errorAnalyzer: ErrorAnalyzer // No longer used in new implementation
   private promptOptimizer: PromptOptimizer
 
-  constructor(apiKey: string) {
+  constructor(configOrApiKey: HandAnalyzerConfig | string) {
+    // Backwards compatibility: support both string and object
+    const config = typeof configOrApiKey === 'string'
+      ? { apiKey: configOrApiKey }
+      : configOrApiKey
+
     // this.sceneDetector = new SceneChangeDetector()
-    // this.boundaryDetector = new HandBoundaryDetector({ geminiApiKey: apiKey })
-    this.geminiClient = new GeminiClient({ apiKey })
-    this.promptBuilder = new MasterPromptBuilder()
+    // this.boundaryDetector = new HandBoundaryDetector({ geminiApiKey: config.apiKey })
+    this.geminiClient = new GeminiClient({ apiKey: config.apiKey })
+    this.promptBuilder = new MasterPromptBuilder({
+      promptsDir: config.promptsDir,
+      layoutsDataPath: config.layoutsDataPath,
+    })
     // this.errorAnalyzer = new ErrorAnalyzer() // No longer used
     this.promptOptimizer = new PromptOptimizer()
+  }
+
+  /**
+   * Check if a URL is a YouTube URL
+   */
+  private isYouTubeURL(url: string): boolean {
+    return (
+      url.includes('youtube.com/watch?v=') ||
+      url.includes('youtu.be/') ||
+      url.includes('youtube.com/embed/') ||
+      url.includes('youtube.com/v/')
+    )
+  }
+
+  /**
+   * Download YouTube video to temporary file with retry logic
+   * Returns path to downloaded file
+   *
+   * Includes anti-bot measures:
+   * - Cookie header (from YOUTUBE_COOKIE env var)
+   * - User-Agent spoofing
+   * - Retry logic (3 attempts with exponential backoff)
+   */
+  private async downloadYouTubeVideo(
+    url: string,
+    maxRetries = 3
+  ): Promise<string> {
+    // Create temp file path
+    const tempDir = os.tmpdir()
+    const fileName = `youtube-${Date.now()}.mp4`
+    const filePath = path.join(tempDir, fileName)
+
+    // Retry loop
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+      try {
+        // Download video with anti-bot headers
+        await new Promise<void>((resolve, reject) => {
+          const videoStream = ytdl(url, {
+            quality: 'highest',
+            filter: 'videoandaudio',
+            requestOptions: {
+              headers: {
+                // Cookie from environment variable (helps bypass bot detection)
+                ...(process.env.YOUTUBE_COOKIE && {
+                  cookie: process.env.YOUTUBE_COOKIE,
+                }),
+                // Spoof User-Agent to appear as Chrome browser
+                'User-Agent':
+                  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept-Language': 'en-US,en;q=0.9',
+              },
+            },
+          })
+
+          const writeStream = createWriteStream(filePath)
+
+          videoStream.pipe(writeStream)
+
+          writeStream.on('finish', () => {
+            resolve()
+          })
+
+          writeStream.on('error', (error) => {
+            reject(
+              new Error(`Failed to write YouTube video: ${error.message}`)
+            )
+          })
+
+          videoStream.on('error', (error) => {
+            reject(
+              new Error(`Failed to fetch YouTube video: ${error.message}`)
+            )
+          })
+        })
+
+        // Success - return file path
+        return filePath
+      } catch (error: any) {
+        // If this is the last attempt, throw the error
+        if (attempt === maxRetries) {
+          throw error
+        }
+
+        // Wait before retrying (exponential backoff: 2s, 4s, 8s)
+        const waitTime = 2000 * attempt
+        console.warn(
+          `YouTube download attempt ${attempt} failed, retrying in ${waitTime}ms...`,
+          error.message
+        )
+        await new Promise((resolve) => setTimeout(resolve, waitTime))
+      }
+    }
+
+    // This should never be reached, but TypeScript requires it
+    throw new Error('Failed to download YouTube video after all retries')
   }
 
   /**
@@ -76,26 +191,28 @@ export class HandAnalyzer {
    *
    * NEW: Bypasses scene change detection and boundary detection.
    * Instead, analyzes the entire video at once using Gemini API.
+   *
+   * Supports both local files and YouTube URLs.
+   * YouTube videos are downloaded, uploaded to Gemini File API, analyzed, then cleaned up.
    */
   async analyzeVideo(options: AnalysisOptions): Promise<AnalysisResult> {
     const startTime = Date.now()
-    // NOTE: maxIterations is no longer used in the new implementation
-    // const maxIterations = options.maxIterations || 3
+    let tempFilePath: string | null = null
+    let fileUri: string | null = null
 
-    // Validate input
-    if (!options.videoUrl && !options.videoPath) {
-      throw new Error('Either videoUrl or videoPath must be provided')
-    }
+    try {
+      // Validate input
+      if (!options.videoUrl && !options.videoPath) {
+        throw new Error('Either videoUrl or videoPath must be provided')
+      }
 
-    const videoSource = options.videoUrl || options.videoPath!
+      // Step 1: Build prompt for extracting ALL hands from video
+      const masterPrompt = await this.promptBuilder.buildPrompt({
+        layout: (options.layout as any) || 'triton',
+      })
 
-    // Step 1: Build prompt for extracting ALL hands from video
-    const masterPrompt = await this.promptBuilder.buildPrompt({
-      layout: (options.layout as any) || 'triton',
-    })
-
-    // Enhanced prompt to extract all hands as array
-    const fullPrompt = `${masterPrompt.prompt}
+      // Enhanced prompt to extract all hands as array
+      const fullPrompt = `${masterPrompt.prompt}
 
 IMPORTANT: Analyze the ENTIRE video and extract ALL poker hands.
 Return the result as a JSON array of hands, where each hand follows the structure defined above.
@@ -109,38 +226,75 @@ Example format:
 
 If no hands are found, return an empty array: []`
 
-    // Step 2: Analyze entire video at once
-    const response = await this.geminiClient.analyzeVideo<Hand[]>({
-      videoPath: videoSource,
-      prompt: fullPrompt,
-    })
+      let response: any
 
-    let hands = response.data
+      // Step 2: Handle YouTube URLs vs local files
+      if (options.videoUrl && this.isYouTubeURL(options.videoUrl)) {
+        // YouTube workflow: Download → Upload to File API → Analyze → Cleanup
 
-    // Ensure we got an array
-    if (!Array.isArray(hands)) {
-      // If single hand was returned, wrap in array
-      hands = [hands as any]
-    }
+        // Download YouTube video
+        tempFilePath = await this.downloadYouTubeVideo(options.videoUrl)
 
-    // Step 3: Calculate metrics
-    const processingTime = Date.now() - startTime
-    const totalHands = hands.length
-    const successfulHands = hands.filter(
-      (h) => h.confidence >= this.promptOptimizer.getConfidenceThreshold(1)
-    ).length
-    const averageConfidence = totalHands > 0
-      ? hands.reduce((sum, h) => sum + h.confidence, 0) / totalHands
-      : 0
+        // Upload to Gemini File API
+        const uploadResult = await this.geminiClient.uploadVideoFile(
+          tempFilePath,
+          `poker-video-${Date.now()}`
+        )
+        fileUri = uploadResult.uri
 
-    return {
-      hands,
-      totalHands,
-      successfulHands,
-      failedHands: totalHands - successfulHands,
-      averageConfidence,
-      totalIterations: 1, // Single API call
-      processingTime,
+        // Analyze using File API
+        response = await this.geminiClient.analyzeVideoFromFileURI<Hand[]>(
+          fileUri,
+          fullPrompt
+        )
+      } else {
+        // Local file workflow: Direct analysis
+        const videoPath = options.videoPath || options.videoUrl!
+        response = await this.geminiClient.analyzeVideo<Hand[]>({
+          videoPath,
+          prompt: fullPrompt,
+        })
+      }
+
+      let hands = response.data
+
+      // Ensure we got an array
+      if (!Array.isArray(hands)) {
+        // If single hand was returned, wrap in array
+        hands = [hands as any]
+      }
+
+      // Step 3: Calculate metrics
+      const processingTime = Date.now() - startTime
+      const totalHands = hands.length
+      const successfulHands = hands.filter(
+        (h: Hand) => h.confidence >= this.promptOptimizer.getConfidenceThreshold(1)
+      ).length
+      const averageConfidence = totalHands > 0
+        ? hands.reduce((sum: number, h: Hand) => sum + h.confidence, 0) / totalHands
+        : 0
+
+      return {
+        hands,
+        totalHands,
+        successfulHands,
+        failedHands: totalHands - successfulHands,
+        averageConfidence,
+        totalIterations: 1, // Single API call
+        processingTime,
+      }
+    } finally {
+      // Cleanup: Delete temp file if it was created
+      if (tempFilePath) {
+        try {
+          await fs.unlink(tempFilePath)
+        } catch (error) {
+          console.warn(`Failed to delete temp file ${tempFilePath}:`, error)
+        }
+      }
+
+      // Note: Gemini File API automatically deletes files after 48 hours
+      // No need to manually delete fileUri
     }
   }
 
